@@ -583,6 +583,13 @@ const AppRenderer = (function () {
     }
 
     /**
+     * 获取作者签名
+     */
+    function getAuthorSignature() {
+        return document.getElementById('author-signature')?.value || '@Vanilla';
+    }
+
+    /**
      * 渲染封面卡片
      */
     function renderCoverCard() {
@@ -590,6 +597,7 @@ const AppRenderer = (function () {
         const topicTag = document.getElementById('topic-tag')?.value || '';
         const coverTitle = document.getElementById('cover-title')?.value || '与AI的深度对话';
         const coverSubtitle = document.getElementById('cover-subtitle')?.value || '';
+        const signature = getAuthorSignature();
 
         return `
             <div class="card cover" style="width: ${CARD_WIDTH}px; height: ${CARD_HEIGHT}px;">
@@ -604,7 +612,7 @@ const AppRenderer = (function () {
                         <span> × </span>
                         <span class="user-mark">我</span>
                     </div>
-                    <div class="cover-signature">@Vanilla</div>
+                    <div class="cover-signature">${escapeHtml(signature)}</div>
                 </div>
             </div>
         `;
@@ -615,7 +623,7 @@ const AppRenderer = (function () {
      */
     function renderContentCard(card) {
         const volNumber = document.getElementById('vol-number')?.value || '1';
-        const topicTag = document.getElementById('topic-tag')?.value || '';
+        const signature = getAuthorSignature();
 
         const roleName = card.role === 'user' ? '我' : 'Gemini 3 Pro';
         const roleIcon = card.role === 'user'
@@ -649,7 +657,7 @@ const AppRenderer = (function () {
                     </div>
                     <div class="card-bottom">
                         <span class="series-tag">#与AI对话 Vol.${volNumber}</span>
-                        <span class="inline-signature">@Vanilla</span>
+                        <span class="inline-signature">${escapeHtml(signature)}</span>
                     </div>
                 </div>
             </div>
@@ -661,6 +669,7 @@ const AppRenderer = (function () {
      */
     function renderDialogueCard(card) {
         const volNumber = document.getElementById('vol-number')?.value || '1';
+        const signature = getAuthorSignature();
 
         // 渲染所有消息
         const messagesHtml = card.messages.map(msg => {
@@ -697,7 +706,7 @@ const AppRenderer = (function () {
                     </div>
                     <div class="card-bottom">
                         <span class="series-tag">#与AI对话 Vol.${volNumber}</span>
-                        <span class="inline-signature">@Vanilla</span>
+                        <span class="inline-signature">${escapeHtml(signature)}</span>
                     </div>
                 </div>
             </div>
