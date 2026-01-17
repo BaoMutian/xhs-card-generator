@@ -192,10 +192,6 @@ const AppRenderer = (function() {
         
         return `
             <div class="card cover" style="width: ${CARD_WIDTH}px; height: ${CARD_HEIGHT}px;">
-                <div class="card-header">
-                    <span class="series-tag">#与AI对话 Vol.${volNumber}</span>
-                    ${topicTag ? `<span class="topic-tag">#${topicTag}</span>` : ''}
-                </div>
                 <div class="cover-content">
                     <div class="series-badge">#与AI对话 Vol.${volNumber}</div>
                     <div class="quote-box">
@@ -221,6 +217,9 @@ const AppRenderer = (function() {
         const topicTag = document.getElementById('topic-tag')?.value || '';
         
         const roleName = card.role === 'user' ? 'User' : 'Gemini';
+        const roleIcon = card.role === 'user' 
+            ? 'assets/icons/user.png' 
+            : 'assets/icons/gemini.svg';
         const pageIndicator = card.totalPages > 1 ? `${card.page}/${card.totalPages}` : '';
         const continuationHint = card.page > 1 ? '<div class="continuation-hint">（接上页）</div>' : '';
         
@@ -229,12 +228,9 @@ const AppRenderer = (function() {
         
         return `
             <div class="card ${card.role}" style="width: ${CARD_WIDTH}px; height: ${CARD_HEIGHT}px;">
-                <div class="card-header">
-                    <span class="series-tag">#与AI对话 Vol.${volNumber}</span>
-                    ${topicTag ? `<span class="topic-tag">#${topicTag}</span>` : ''}
-                </div>
                 <div class="card-body">
                     <div class="role-header">
+                        <img class="role-icon" src="${roleIcon}" alt="${roleName}">
                         <span class="role-name">${roleName}</span>
                         ${pageIndicator ? `<span class="page-indicator">${pageIndicator}</span>` : ''}
                     </div>
@@ -243,7 +239,10 @@ const AppRenderer = (function() {
                         <div class="markdown-body">
                             ${renderedContent}
                         </div>
-                        <div class="inline-signature">@Vanilla</div>
+                    </div>
+                    <div class="card-bottom">
+                        <span class="series-tag">#与AI对话 Vol.${volNumber}</span>
+                        <span class="inline-signature">@Vanilla</span>
                     </div>
                 </div>
             </div>

@@ -9,40 +9,42 @@
     --user-bg: #F5F7F3;
     --user-border: #6B7F62;
     --user-text: #3D4A35;
-    
+
     /* 深邃科技蓝 Deep Tech Blue (Gemini) */
     --gemini-primary: #4A6D8C;
     --gemini-bg: #F3F6F8;
     --gemini-border: #2A4D6C;
     --gemini-text: #1E3A4F;
-    
+
     /* 纸质感背景 */
     --paper-bg: #FAF8F5;
     --paper-texture: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.03"/></svg>');
-    
+
     /* 通用颜色 */
     --text-primary: #2C3E50;
     --text-secondary: #5D6D7E;
     --border-light: #E8E8E8;
     --shadow-light: rgba(0, 0, 0, 0.08);
     --shadow-medium: rgba(0, 0, 0, 0.12);
-    
+
     /* 字体 */
     --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    
+
     /* 卡片尺寸 (3:5 比例) */
     --card-width: 1080px;
     --card-height: 1800px;
     --card-padding: 60px;
-    
+
     /* 预览缩放 */
     --preview-scale: 0.35;
 }
 
 /* Reset & Base */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -438,30 +440,40 @@ body {
 }
 
 /* 顶部元信息栏 */
+/* Header 区域 - 已移除，改为底部显示 */
 .card-header {
-    padding: 24px var(--card-padding) 16px;
+    display: none;
+}
+
+/* 卡片底部区域 - 左侧系列标签，右侧署名 */
+.card-bottom {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    align-items: flex-end;
+    margin-top: auto;
+    padding-top: 20px;
+    flex-shrink: 0;
 }
 
-.card-header .series-tag {
+.card-bottom .series-tag {
     font-family: var(--font-serif);
-    font-size: 32px;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    opacity: 0.6;
 }
 
-.card-header .topic-tag {
-    font-size: 28px;
+.card-bottom .inline-signature {
+    font-family: var(--font-serif);
+    font-size: 26px;
     color: var(--text-secondary);
+    opacity: 0.6;
 }
 
 /* 卡片内容区域 */
 .card-body {
     flex: 1;
-    padding: 20px var(--card-padding) var(--card-padding);
+    padding: 36px var(--card-padding) 24px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -471,10 +483,16 @@ body {
 .role-header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
     border-bottom: 2px solid currentColor;
+}
+
+.role-header .role-icon {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
 }
 
 .role-header .role-name {
@@ -515,7 +533,6 @@ body {
 
 /* 内容容器 */
 .card-content {
-    flex: 1;
     padding: 36px;
     border-radius: 16px;
     overflow: hidden;
@@ -534,7 +551,8 @@ body {
 
 /* 底部署名 - 内嵌在内容区域 */
 .card-footer {
-    display: none; /* 隐藏独立的底部栏 */
+    display: none;
+    /* 隐藏独立的底部栏 */
 }
 
 .card-footer .signature {
@@ -543,16 +561,7 @@ body {
     color: var(--text-secondary);
 }
 
-/* 内容区域内的署名 */
-.card-content .inline-signature {
-    text-align: right;
-    font-family: var(--font-serif);
-    font-size: 26px;
-    color: var(--text-secondary);
-    margin-top: auto;
-    padding-top: 20px;
-    opacity: 0.7;
-}
+/* 内容区域内的署名 - 已移至 card-bottom */
 
 /* ========================================
    封面图样式
@@ -661,10 +670,21 @@ body {
     line-height: 1.4;
 }
 
-.markdown-body h1 { font-size: 36px; }
-.markdown-body h2 { font-size: 32px; }
-.markdown-body h3 { font-size: 30px; }
-.markdown-body h4 { font-size: 28px; }
+.markdown-body h1 {
+    font-size: 36px;
+}
+
+.markdown-body h2 {
+    font-size: 32px;
+}
+
+.markdown-body h3 {
+    font-size: 30px;
+}
+
+.markdown-body h4 {
+    font-size: 28px;
+}
 
 .markdown-body p {
     margin-bottom: 0.8em;
@@ -680,8 +700,8 @@ body {
     margin-bottom: 0.4em;
 }
 
-.markdown-body li > ul,
-.markdown-body li > ol {
+.markdown-body li>ul,
+.markdown-body li>ol {
     margin-top: 0.4em;
     margin-bottom: 0;
 }
@@ -798,12 +818,12 @@ body {
     .app-container {
         flex-direction: column;
     }
-    
+
     .control-panel {
         width: 100%;
         max-height: 50vh;
     }
-    
+
     :root {
         --preview-scale: 0.25;
     }
