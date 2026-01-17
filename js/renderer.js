@@ -132,44 +132,107 @@ const AppRenderer = (function() {
         // 使用字符数估算的简单分页
         generateCardsWithCharEstimate(selectedConvs);
         
+        // 标记最后一张内容卡片
+        for (let i = allCards.length - 1; i >= 0; i--) {
+            if (allCards[i].type !== 'cover') {
+                allCards[i].isLast = true;
+                break;
+            }
+        }
+        
         updateNavigationState();
     }
     
     /**
-     * 基于字符数估算生成分页卡片 - 简单可靠
+     * 基于字符数估算生成分页卡片 - 智能合并短消息
      */
     function generateCardsWithCharEstimate(conversations) {
-        // 每页最大字符数（中文约 600-800 字符适合一页）
+        // 每页最大字符数
         const MAX_CHARS_PER_PAGE = 700;
+        
+        // 当前页面累积的消息
+        let currentPageMessages = [];
+        let currentPageChars = 0;
         
         conversations.forEach((conv, convIndex) => {
             const content = conv.content;
+            const contentLen = content.length;
             
-            if (content.length <= MAX_CHARS_PER_PAGE) {
-                // 短消息，单页显示
-                allCards.push({
-                    type: 'content',
+            // 检查能否添加到当前页
+            if (currentPageChars + contentLen <= MAX_CHARS_PER_PAGE) {
+                // 可以合并到当前页
+                currentPageMessages.push({
                     role: conv.role,
                     content: content,
+                    convIndex: convIndex
+                });
+                currentPageChars += contentLen;
+            } else {
+                // 放不下，先输出当前页
+                if (currentPageMessages.length > 0) {
+                    flushCurrentPage(currentPageMessages);
+                    currentPageMessages = [];
+                    currentPageChars = 0;
+                }
+                
+                // 处理当前消息
+                if (contentLen <= MAX_CHARS_PER_PAGE) {
+                    // 短消息，开始新页
+                    currentPageMessages.push({
+                        role: conv.role,
+                        content: content,
+                        convIndex: convIndex
+                    });
+                    currentPageChars = contentLen;
+                } else {
+                    // 长消息，需要分页
+                    const pages = splitContentByChars(content, MAX_CHARS_PER_PAGE);
+                    pages.forEach((pageContent, pageIndex) => {
+                        allCards.push({
+                            type: 'content',
+                            role: conv.role,
+                            content: pageContent,
+                            page: pageIndex + 1,
+                            totalPages: pages.length,
+                            isFirst: pageIndex === 0
+                        });
+                    });
+                }
+            }
+        });
+        
+        // 输出最后一页
+        if (currentPageMessages.length > 0) {
+            flushCurrentPage(currentPageMessages);
+        }
+        
+        /**
+         * 输出当前页面的消息
+         */
+        function flushCurrentPage(messages) {
+            if (messages.length === 0) return;
+            
+            if (messages.length === 1) {
+                // 单条消息
+                allCards.push({
+                    type: 'content',
+                    role: messages[0].role,
+                    content: messages[0].content,
                     page: 1,
                     totalPages: 1,
                     isFirst: true
                 });
             } else {
-                // 长消息，需要分页
-                const pages = splitContentByChars(content, MAX_CHARS_PER_PAGE);
-                pages.forEach((pageContent, pageIndex) => {
-                    allCards.push({
-                        type: 'content',
-                        role: conv.role,
-                        content: pageContent,
-                        page: pageIndex + 1,
-                        totalPages: pages.length,
-                        isFirst: pageIndex === 0
-                    });
+                // 多条消息合并为对话流卡片
+                allCards.push({
+                    type: 'dialogue',
+                    messages: messages.map(m => ({
+                        role: m.role,
+                        content: m.content
+                    }))
                 });
             }
-        });
+        }
     }
     
     /**
@@ -342,6 +405,9 @@ const AppRenderer = (function() {
         // 渲染 Markdown 内容
         const renderedContent = renderMarkdown(card.content);
         
+        // 最后一页显示"（完）"
+        const endMark = card.isLast ? '<div class="end-mark">（完）</div>' : '';
+        
         return `
             <div class="card ${card.role}" style="width: ${CARD_WIDTH}px; height: ${CARD_HEIGHT}px;">
                 <div class="card-body">
@@ -355,6 +421,7 @@ const AppRenderer = (function() {
                         <div class="markdown-body">
                             ${renderedContent}
                         </div>
+                        ${endMark}
                     </div>
                     <div class="card-bottom">
                         <span class="series-tag">#与AI对话 Vol.${volNumber}</span>
@@ -394,11 +461,15 @@ const AppRenderer = (function() {
             `;
         }).join('');
         
+        // 最后一页显示"（完）"
+        const endMark = card.isLast ? '<div class="end-mark">（完）</div>' : '';
+        
         return `
             <div class="card dialogue" style="width: ${CARD_WIDTH}px; height: ${CARD_HEIGHT}px;">
                 <div class="card-body">
                     <div class="dialogue-flow">
                         ${messagesHtml}
+                        ${endMark}
                     </div>
                     <div class="card-bottom">
                         <span class="series-tag">#与AI对话 Vol.${volNumber}</span>

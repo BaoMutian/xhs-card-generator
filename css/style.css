@@ -470,6 +470,18 @@ body {
     opacity: 0.6;
 }
 
+/* 内容区域的"（完）"标记 */
+.card-content .end-mark,
+.dialogue-flow .end-mark {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    text-align: right;
+    margin-top: 20px;
+    padding-right: 10px;
+}
+
 /* 卡片内容区域 */
 .card-body {
     flex: 1;

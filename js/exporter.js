@@ -30,7 +30,7 @@ const AppExporter = (function() {
     }
     
     /**
-     * 导出所有卡片
+     * 导出所有卡片为 ZIP 压缩包
      */
     async function exportAllCards() {
         if (isExporting) {
@@ -40,6 +40,11 @@ const AppExporter = (function() {
         
         if (typeof html2canvas === 'undefined') {
             alert('html2canvas 库未加载，无法导出');
+            return;
+        }
+        
+        if (typeof JSZip === 'undefined') {
+            alert('JSZip 库未加载，无法导出压缩包');
             return;
         }
         
@@ -56,6 +61,9 @@ const AppExporter = (function() {
         try {
             const volNumber = document.getElementById('vol-number')?.value || '1';
             const exportContainer = document.getElementById('export-container');
+            
+            // 创建 ZIP 实例
+            const zip = new JSZip();
             
             // 清空导出容器
             exportContainer.innerHTML = '';
@@ -74,12 +82,25 @@ const AppExporter = (function() {
                 // 等待字体和图片加载
                 await waitForResources(cardElement);
                 
-                // 导出为 PNG
-                await exportToPng(cardElement, fileName);
+                // 导出为 PNG Blob 并添加到 ZIP
+                const blob = await exportToBlob(cardElement);
+                zip.file(fileName, blob);
                 
                 // 短暂延迟，避免浏览器卡顿
                 await delay(100);
             }
+            
+            // 生成 ZIP 文件并下载
+            exportBtn.textContent = '正在压缩...';
+            const zipBlob = await zip.generateAsync({ 
+                type: 'blob',
+                compression: 'DEFLATE',
+                compressionOptions: { level: 6 }
+            });
+            
+            // 下载 ZIP 文件
+            const zipFileName = `与AI对话_Vol${volNumber}.zip`;
+            downloadBlob(zipBlob, zipFileName);
             
             alert(`成功导出 ${cards.length} 张卡片！`);
             
@@ -130,9 +151,9 @@ const AppExporter = (function() {
     }
     
     /**
-     * 导出单张卡片为 PNG
+     * 导出单张卡片为 PNG Blob（用于 ZIP 打包）
      */
-    async function exportToPng(element, fileName) {
+    async function exportToBlob(element) {
         const canvas = await html2canvas(element, {
             scale: EXPORT_SCALE,
             useCORS: true,
@@ -152,17 +173,24 @@ const AppExporter = (function() {
             }
         });
         
-        // 转换为 Blob 并下载
+        // 转换为 Blob
         return new Promise((resolve, reject) => {
             canvas.toBlob((blob) => {
                 if (blob) {
-                    downloadBlob(blob, fileName);
-                    resolve();
+                    resolve(blob);
                 } else {
                     reject(new Error('Canvas 转换失败'));
                 }
             }, 'image/png', 1.0);
         });
+    }
+    
+    /**
+     * 导出单张卡片为 PNG 并下载
+     */
+    async function exportToPng(element, fileName) {
+        const blob = await exportToBlob(element);
+        downloadBlob(blob, fileName);
     }
     
     /**
