@@ -80,7 +80,8 @@ $$\\vec{King} - \\vec{Man} + \\vec{Woman} \\approx \\vec{Queen}$$
 * **智能（Intelligence）是关于"做"（Doing）：** 处理信息、解决问题、达成目标的能力。
 * **意识（Consciousness）是关于"在"（Being）：** 主观体验，哲学家称之为 **Qualia（感受质）**。
 
-**解耦的结论：** 就像潜水艇会游泳但不会像鱼一样"享受水流"一样，LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。
+**解耦的结论：就像潜水艇会游泳但不会像鱼一样"享受水流"一样，
+LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
 `;
         
         currentFileName = '演示对话';
@@ -269,7 +270,7 @@ $$\\vec{King} - \\vec{Man} + \\vec{Woman} \\approx \\vec{Queen}$$
         conversations.forEach((conv, index) => {
             const previewText = conv.content.substring(0, 80).replace(/[#*`]/g, '') + 
                                (conv.content.length > 80 ? '...' : '');
-            const roleLabel = conv.role === 'user' ? 'User' : 'Gemini';
+            const roleLabel = conv.role === 'user' ? '我' : 'Gemini 3 Pro';
             
             html += `
                 <div class="conversation-item ${conv.role}" data-index="${index}">

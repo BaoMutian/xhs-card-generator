@@ -376,9 +376,9 @@ const AppRenderer = (function() {
                         ${coverSubtitle ? `<div class="subtitle">── ${escapeHtml(coverSubtitle)} ──</div>` : ''}
                     </div>
                     <div class="participants">
-                        <span class="gemini-mark">✦ Gemini</span>
+                        <span class="gemini-mark">✦ Gemini 3 Pro</span>
                         <span> × </span>
-                        <span class="user-mark">User</span>
+                        <span class="user-mark">我</span>
                     </div>
                     <div class="cover-signature">@Vanilla</div>
                 </div>
@@ -393,7 +393,7 @@ const AppRenderer = (function() {
         const volNumber = document.getElementById('vol-number')?.value || '1';
         const topicTag = document.getElementById('topic-tag')?.value || '';
         
-        const roleName = card.role === 'user' ? 'User' : 'Gemini';
+        const roleName = card.role === 'user' ? '我' : 'Gemini 3 Pro';
         const roleIcon = card.role === 'user' 
             ? 'assets/icons/user.png' 
             : 'assets/icons/gemini.svg';
@@ -440,7 +440,7 @@ const AppRenderer = (function() {
         
         // 渲染所有消息
         const messagesHtml = card.messages.map(msg => {
-            const roleName = msg.role === 'user' ? 'User' : 'Gemini';
+            const roleName = msg.role === 'user' ? '我' : 'Gemini 3 Pro';
             const roleIcon = msg.role === 'user' 
                 ? 'assets/icons/user.png' 
                 : 'assets/icons/gemini.svg';
@@ -503,6 +503,20 @@ const AppRenderer = (function() {
         processed = processed.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
             mathBlocks.push({ type: 'inline', formula: formula.trim() });
             return `%%MATH_INLINE_${mathIndex++}%%`;
+        });
+        
+        // 处理跨行的粗体和斜体：将内部换行替换为空格
+        // 粗体 **...**
+        processed = processed.replace(/\*\*([\s\S]*?)\*\*/g, (match, text) => {
+            // 将内部的换行符替换为空格
+            const fixed = text.replace(/\n/g, ' ');
+            return `**${fixed}**`;
+        });
+        
+        // 斜体 *...* (但不匹配 **)
+        processed = processed.replace(/(?<!\*)\*(?!\*)([^*\n][^*]*?)\*(?!\*)/g, (match, text) => {
+            const fixed = text.replace(/\n/g, ' ');
+            return `*${fixed}*`;
         });
         
         // 渲染 Markdown
