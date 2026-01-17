@@ -41,16 +41,21 @@
             <section class="control-section">
                 <h2>选择对话文件</h2>
                 <div class="file-input-wrapper">
-                    <input type="file" id="file-input" accept=".md,.markdown" />
-                    <label for="file-input" class="file-label">
+                    <input type="file" id="file-input" accept=".md,.markdown" style="display:none;" />
+                    <div class="file-label" id="file-picker-btn">
                         <span class="file-icon">📄</span>
                         <span class="file-text">点击选择 Markdown 文件</span>
-                    </label>
+                    </div>
                     <p class="file-name" id="selected-file-name"></p>
                 </div>
-                <button id="load-demo-btn" class="btn btn-secondary" style="margin-top: 10px; font-size: 0.8rem;">
-                    加载演示数据
-                </button>
+                <div class="file-actions">
+                    <button id="load-demo-btn" class="btn btn-secondary btn-small">
+                        加载演示
+                    </button>
+                    <button id="refresh-btn" class="btn btn-secondary btn-small" title="重新加载文件并刷新预览">
+                        刷新预览
+                    </button>
+                </div>
             </section>
             
             <!-- 元信息设置 -->

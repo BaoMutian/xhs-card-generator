@@ -7,8 +7,8 @@ const AppRenderer = (function () {
     // 卡片尺寸常量
     const CARD_WIDTH = 1080;
     const CARD_HEIGHT = 1800;
-    // 内容区域最大高度 = 卡片高度 - 顶部padding(36) - 角色header区(约70) - 底部区域(约80) - 内容padding(72) - 安全边距
-    const CONTENT_MAX_HEIGHT = 1500;
+    // 内容区域最大高度 = 卡片高度 - 顶部padding(36) - 角色header区(约70) - 底部区域(约70) - 安全边距(24)
+    const CONTENT_MAX_HEIGHT = 1600;
 
     // 存储对话数据
     let conversations = [];
@@ -834,6 +834,13 @@ const AppRenderer = (function () {
         return container.firstElementChild;
     }
 
+    /**
+     * 获取当前卡片索引
+     */
+    function getCurrentCardIndex() {
+        return currentCardIndex;
+    }
+
     // 公开 API
     return {
         init,
@@ -841,6 +848,7 @@ const AppRenderer = (function () {
         renderPreview,
         getAllCards,
         renderCardForExport,
-        generateAllCards
+        generateAllCards,
+        getCurrentCardIndex
     };
 })();

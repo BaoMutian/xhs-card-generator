@@ -3,19 +3,86 @@
  * 解析 chat 目录下的 markdown 文件，识别 User/Gemini 对话结构
  */
 
-const AppParser = (function() {
+const AppParser = (function () {
     // 存储解析后的对话数据
     let conversations = [];
     let currentFileName = '';
-    
+    let currentFile = null; // 保存当前文件对象用于刷新
+    let fileHandle = null; // File System Access API 的文件句柄（支持重新读取）
+
     /**
      * 初始化解析器
      */
     function init() {
         bindFileInput();
         bindDemoButton();
+        bindRefreshButton();
     }
-    
+
+    /**
+     * 绑定刷新按钮
+     */
+    function bindRefreshButton() {
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', refreshCurrentFile);
+        }
+    }
+
+    /**
+     * 刷新当前文件
+     */
+    async function refreshCurrentFile() {
+        if (!currentFile && !fileHandle) {
+            alert('请先选择一个 Markdown 文件');
+            return;
+        }
+
+        // 保存当前页面索引
+        let currentIndex = 0;
+        try {
+            currentIndex = AppRenderer.getCurrentCardIndex ? AppRenderer.getCurrentCardIndex() : 0;
+        } catch (indexError) {
+            // ignore
+        }
+
+        try {
+            let content;
+
+            // 优先使用 File System Access API 的文件句柄（支持读取修改后的文件）
+            if (fileHandle) {
+                const file = await fileHandle.getFile();
+                content = await file.text();
+            } else {
+                // 回退：尝试读取旧的 File 对象（可能失败）
+                content = await readFile(currentFile);
+            }
+
+            conversations = parseMarkdown(content);
+
+            // 更新 UI
+            updateConversationList(conversations);
+
+            // 重新生成卡片并恢复到当前页面
+            if (typeof AppRenderer !== 'undefined') {
+                AppRenderer.setConversations(conversations);
+                const totalCards = AppRenderer.getAllCards().length;
+                const targetIndex = Math.min(currentIndex, totalCards - 1);
+                AppRenderer.renderPreview(Math.max(0, targetIndex));
+            }
+        } catch (error) {
+            console.error('文件刷新失败:', error);
+            // 如果是权限错误，提示用户重新选择文件
+            if (error.name === 'NotReadableError') {
+                alert('文件已被外部修改，请重新选择文件');
+                // 触发文件选择器
+                document.getElementById('file-input')?.click();
+            } else {
+                alert('文件刷新失败: ' + error.message);
+            }
+        }
+    }
+
     /**
      * 绑定演示按钮
      */
@@ -25,7 +92,7 @@ const AppParser = (function() {
             demoBtn.addEventListener('click', loadDemoData);
         }
     }
-    
+
     /**
      * 加载演示数据 - 包含智能合并测试用例
      */
@@ -83,58 +150,85 @@ $$\\vec{King} - \\vec{Man} + \\vec{Woman} \\approx \\vec{Queen}$$
 **解耦的结论：就像潜水艇会游泳但不会像鱼一样"享受水流"一样，
 LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
 `;
-        
+
         currentFileName = '演示对话';
         document.getElementById('selected-file-name').textContent = '演示对话.md';
-        
+
         conversations = parseMarkdown(demoContent);
-        
+
         // 更新 UI
         updateConversationList(conversations);
         enableButtons();
-        
+
         // 设置封面建议
         document.getElementById('cover-title').value = 'LLM正在迫使我们重新定义存在、智能和世界的本质';
         document.getElementById('cover-subtitle').value = '语言、智能与数字世界的哲学思辨';
         document.getElementById('topic-tag').value = '哲学思辨';
-        
+
         // 触发预览
         if (typeof AppRenderer !== 'undefined') {
             AppRenderer.setConversations(conversations);
             AppRenderer.renderPreview(0);
         }
     }
-    
+
     /**
      * 绑定文件输入事件
      */
     function bindFileInput() {
         const fileInput = document.getElementById('file-input');
         const fileNameDisplay = document.getElementById('selected-file-name');
-        
+        const filePickerBtn = document.getElementById('file-picker-btn');
+
+        // 点击文件选择区域
+        if (filePickerBtn) {
+            filePickerBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // 优先使用 File System Access API（支持重新读取修改后的文件）
+                if ('showOpenFilePicker' in window) {
+                    try {
+                        const [handle] = await window.showOpenFilePicker({
+                            types: [{
+                                description: 'Markdown files',
+                                accept: { 'text/markdown': ['.md', '.markdown'] }
+                            }]
+                        });
+
+                        fileHandle = handle; // 保存文件句柄用于刷新
+                        const file = await handle.getFile();
+                        currentFile = file;
+                        currentFileName = file.name.replace(/\.(md|markdown)$/i, '');
+                        fileNameDisplay.textContent = file.name;
+
+                        const content = await file.text();
+                        await processFileContent(content);
+                    } catch (error) {
+                        if (error.name !== 'AbortError') {
+                            console.error('文件选择失败:', error);
+                        }
+                    }
+                } else {
+                    // 回退到传统 file input
+                    fileInput?.click();
+                }
+            });
+        }
+
+        // 传统的 file input 作为备用（用于不支持 File System Access API 的浏览器）
         if (fileInput) {
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (file) {
+                    fileHandle = null; // 清除旧的文件句柄
+                    currentFile = file;
                     currentFileName = file.name.replace(/\.(md|markdown)$/i, '');
                     fileNameDisplay.textContent = file.name;
-                    
+
                     try {
                         const content = await readFile(file);
-                        conversations = parseMarkdown(content);
-                        
-                        // 更新 UI
-                        updateConversationList(conversations);
-                        enableButtons();
-                        
-                        // 自动提取主题作为封面金句建议
-                        suggestCoverTitle(conversations);
-                        
-                        // 触发预览
-                        if (typeof AppRenderer !== 'undefined') {
-                            AppRenderer.setConversations(conversations);
-                            AppRenderer.renderPreview(0);
-                        }
+                        await processFileContent(content);
                     } catch (error) {
                         console.error('文件解析错误:', error);
                         alert('文件解析失败，请检查 Markdown 格式');
@@ -143,7 +237,27 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
             });
         }
     }
-    
+
+    /**
+     * 处理文件内容（公共逻辑）
+     */
+    async function processFileContent(content) {
+        conversations = parseMarkdown(content);
+
+        // 更新 UI
+        updateConversationList(conversations);
+        enableButtons();
+
+        // 自动提取主题作为封面金句建议
+        suggestCoverTitle(conversations);
+
+        // 触发预览
+        if (typeof AppRenderer !== 'undefined') {
+            AppRenderer.setConversations(conversations);
+            AppRenderer.renderPreview(0);
+        }
+    }
+
     /**
      * 读取文件内容
      */
@@ -151,11 +265,11 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
+            reader.onerror = () => reject(reader.error || new Error('FileReader error'));
             reader.readAsText(file, 'UTF-8');
         });
     }
-    
+
     /**
      * 解析 Markdown 文件，提取对话结构
      * 识别格式：
@@ -168,16 +282,16 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
     function parseMarkdown(content) {
         const result = [];
         const lines = content.split('\n');
-        
+
         let currentRole = null;
         let currentContent = [];
         let inUserPrompt = false;
         let userPromptLines = 0;
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trimmedLine = line.trim();
-            
+
             // 检测 User Prompt 表格开始
             if (trimmedLine.match(/^\|\s*User\s*Prompt\s*:\s*\|$/i)) {
                 // 保存之前的内容
@@ -190,19 +304,19 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
                         });
                     }
                 }
-                
+
                 inUserPrompt = true;
                 userPromptLines = 0;
                 currentRole = 'user';
                 currentContent = [];
                 continue;
             }
-            
+
             // 跳过表格分隔行
             if (inUserPrompt && trimmedLine.match(/^\|[-\s]+\|$/)) {
                 continue;
             }
-            
+
             // 解析用户问题内容（在表格内）
             if (inUserPrompt && trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
                 // 提取表格内容
@@ -213,7 +327,7 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
                 userPromptLines++;
                 continue;
             }
-            
+
             // 用户问题表格结束，切换到 Gemini 回复
             if (inUserPrompt && !trimmedLine.startsWith('|')) {
                 if (currentContent.length > 0) {
@@ -222,24 +336,24 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
                         content: currentContent.join('\n').trim()
                     });
                 }
-                
+
                 inUserPrompt = false;
                 currentRole = 'gemini';
                 currentContent = [];
-                
+
                 // 当前行可能是 Gemini 回复的开始
                 if (trimmedLine) {
                     currentContent.push(line);
                 }
                 continue;
             }
-            
+
             // 收集当前角色的内容
             if (currentRole && !inUserPrompt) {
                 currentContent.push(line);
             }
         }
-        
+
         // 保存最后一段内容
         if (currentRole && currentContent.length > 0) {
             const content = currentContent.join('\n').trim();
@@ -250,28 +364,28 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
                 });
             }
         }
-        
+
         return result;
     }
-    
+
     /**
      * 更新对话列表 UI
      */
     function updateConversationList(conversations) {
         const listContainer = document.getElementById('conversation-list');
         if (!listContainer) return;
-        
+
         if (conversations.length === 0) {
             listContainer.innerHTML = '<p class="placeholder-text">未找到有效对话</p>';
             return;
         }
-        
+
         let html = '';
         conversations.forEach((conv, index) => {
-            const previewText = conv.content.substring(0, 80).replace(/[#*`]/g, '') + 
-                               (conv.content.length > 80 ? '...' : '');
+            const previewText = conv.content.substring(0, 80).replace(/[#*`]/g, '') +
+                (conv.content.length > 80 ? '...' : '');
             const roleLabel = conv.role === 'user' ? '我' : 'Gemini 3 Pro';
-            
+
             html += `
                 <div class="conversation-item ${conv.role}" data-index="${index}">
                     <input type="checkbox" checked data-conv-index="${index}" />
@@ -280,17 +394,17 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
                 </div>
             `;
         });
-        
+
         listContainer.innerHTML = html;
     }
-    
+
     /**
      * 建议封面标题
      */
     function suggestCoverTitle(conversations) {
         const coverTitleInput = document.getElementById('cover-title');
         if (!coverTitleInput || conversations.length === 0) return;
-        
+
         // 从第一个 Gemini 回复中提取第一句话作为建议
         const firstGemini = conversations.find(c => c.role === 'gemini');
         if (firstGemini) {
@@ -299,24 +413,24 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
                 .replace(/[#*`]/g, '')
                 .trim()
                 .substring(0, 50);
-            
+
             if (firstSentence && !coverTitleInput.value) {
                 coverTitleInput.placeholder = firstSentence + '...';
             }
         }
     }
-    
+
     /**
      * 启用按钮
      */
     function enableButtons() {
         const previewBtn = document.getElementById('preview-btn');
         const exportBtn = document.getElementById('export-btn');
-        
+
         if (previewBtn) previewBtn.disabled = false;
         if (exportBtn) exportBtn.disabled = false;
     }
-    
+
     /**
      * HTML 转义
      */
@@ -325,7 +439,7 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
         div.textContent = text;
         return div.innerHTML;
     }
-    
+
     /**
      * 获取选中的对话索引
      */
@@ -334,21 +448,21 @@ LLM 拥有极高的智能，但它的内心是一片虚无的黑暗。**
         const indices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.convIndex));
         return indices.map(i => conversations[i]).filter(Boolean);
     }
-    
+
     /**
      * 获取所有对话
      */
     function getAllConversations() {
         return conversations;
     }
-    
+
     /**
      * 获取当前文件名
      */
     function getFileName() {
         return currentFileName;
     }
-    
+
     // 公开 API
     return {
         init,

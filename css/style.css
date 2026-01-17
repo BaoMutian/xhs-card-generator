@@ -330,6 +330,24 @@ body {
     background: var(--gemini-bg);
 }
 
+/* 小按钮 */
+.btn-small {
+    width: auto;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+}
+
+/* 文件操作按钮组 */
+.file-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.file-actions .btn {
+    flex: 1;
+}
+
 .export-section {
     display: flex;
     flex-direction: column;
@@ -525,22 +543,20 @@ body {
     border-bottom-color: var(--user-primary);
 }
 
+/* User 卡片内容区域 - 绿色气泡（高度自适应文字） */
 .card.user .card-content {
+    flex: none;
     background: linear-gradient(135deg, var(--user-bg) 0%, #EDF1EA 100%);
-    border-left: 6px solid var(--user-primary);
-    box-shadow: 0 4px 20px rgba(139, 159, 130, 0.15);
+    border-left: 5px solid var(--user-primary);
+    border-radius: 16px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 16px rgba(139, 159, 130, 0.12);
 }
 
 /* Gemini 角色样式 */
 .card.gemini .role-header {
     color: var(--gemini-border);
     border-bottom-color: var(--gemini-primary);
-}
-
-.card.gemini .card-content {
-    background: linear-gradient(135deg, var(--gemini-bg) 0%, #E8EEF3 100%);
-    border-left: 6px solid var(--gemini-primary);
-    box-shadow: 0 4px 20px rgba(74, 109, 140, 0.15);
 }
 
 /* ========== 对话流卡片样式 ========== */
@@ -602,16 +618,17 @@ body {
 }
 
 .dialogue-content {
-    font-size: 26px;
-    line-height: 1.7;
+    font-size: 30px;
+    line-height: 1.8;
 }
 
 .dialogue-content .markdown-body {
-    font-size: 26px;
+    font-size: 30px;
+    line-height: 1.8;
 }
 
 .dialogue-content .markdown-body p {
-    margin-bottom: 0.6em;
+    margin-bottom: 0.8em;
 }
 
 .dialogue-content .markdown-body p:last-child {
@@ -624,13 +641,47 @@ body {
 }
 
 .dialogue-item.gemini .markdown-body strong {
-    background: linear-gradient(to top, #D7E3FA 0%, #D7E3FA 35%, transparent 35%);
+    color: #2B4C89;
+    background: linear-gradient(to top, #E5E5E5 0%, #E5E5E5 35%, transparent 35%);
+}
+
+/* 对话流中 Gemini 的标题配色 */
+.dialogue-item.gemini .markdown-body h1,
+.dialogue-item.gemini .markdown-body h2,
+.dialogue-item.gemini .markdown-body h3,
+.dialogue-item.gemini .markdown-body h4 {
+    color: #2C3E50;
+}
+
+.dialogue-item.gemini .markdown-body blockquote {
+    color: var(--gemini-primary);
+    border-left-color: var(--gemini-primary);
+}
+
+.dialogue-item.gemini .markdown-body li::marker {
+    color: var(--gemini-primary);
+}
+
+/* 对话流中 User 的标题配色 */
+.dialogue-item.user .markdown-body h1,
+.dialogue-item.user .markdown-body h2,
+.dialogue-item.user .markdown-body h3,
+.dialogue-item.user .markdown-body h4 {
+    color: var(--user-border);
+}
+
+.dialogue-item.user .markdown-body blockquote {
+    color: var(--user-border);
+    border-left-color: var(--user-primary);
+}
+
+.dialogue-item.user .markdown-body li::marker {
+    color: var(--user-primary);
 }
 
 /* 内容容器 */
 .card-content {
-    padding: 36px;
-    border-radius: 16px;
+    flex: 1;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -750,50 +801,44 @@ body {
 
 .markdown-body {
     font-family: var(--font-serif);
-    font-size: 28px;
-    line-height: 1.7;
+    font-size: 32px;
+    line-height: 1.9;
     color: var(--text-primary);
     flex: 1;
 }
 
+/* 标题统一样式 */
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3,
 .markdown-body h4 {
     font-weight: 600;
-    margin-top: 0.8em;
-    margin-bottom: 0.5em;
+    font-size: 42px;
+    margin-top: 1.4em;
+    margin-bottom: 0.6em;
     line-height: 1.4;
 }
 
-.markdown-body h1 {
-    font-size: 36px;
-}
-
-.markdown-body h2 {
-    font-size: 32px;
-}
-
-.markdown-body h3 {
-    font-size: 30px;
-}
-
-.markdown-body h4 {
-    font-size: 28px;
+/* 第一个标题不需要顶部间距 */
+.markdown-body h1:first-child,
+.markdown-body h2:first-child,
+.markdown-body h3:first-child,
+.markdown-body h4:first-child {
+    margin-top: 0;
 }
 
 .markdown-body p {
-    margin-bottom: 0.8em;
+    margin-bottom: 1em;
 }
 
 .markdown-body ul,
 .markdown-body ol {
     padding-left: 1.5em;
-    margin-bottom: 0.8em;
+    margin-bottom: 1em;
 }
 
 .markdown-body li {
-    margin-bottom: 0.4em;
+    margin-bottom: 0.5em;
 }
 
 .markdown-body li>ul,
@@ -804,9 +849,9 @@ body {
 
 /* 引用块 */
 .markdown-body blockquote {
-    margin: 0.8em 0;
-    padding: 16px 24px;
-    border-left: 4px solid var(--gemini-primary);
+    margin: 1em 0;
+    padding: 20px 28px;
+    border-left: 5px solid var(--gemini-primary);
     background: rgba(74, 109, 140, 0.06);
     border-radius: 0 8px 8px 0;
     font-style: italic;
@@ -893,9 +938,54 @@ body {
     background: linear-gradient(to top, rgba(139, 159, 130, 0.5) 0%, rgba(139, 159, 130, 0.5) 35%, transparent 35%);
 }
 
-/* Gemini 卡片使用浅蓝荧光笔 #D7E3FA */
+/* Gemini 卡片粗体文字 + 浅灰荧光笔 */
 .card.gemini .markdown-body strong {
-    background: linear-gradient(to top, #D7E3FA 0%, #D7E3FA 35%, transparent 35%);
+    color: #2B4C89;
+    background: linear-gradient(to top, #E5E5E5 0%, #E5E5E5 35%, transparent 35%);
+}
+
+/* ========== Gemini 卡片文字配色 ========== */
+
+/* Gemini 标题使用深色 #2C3E50 */
+.card.gemini .markdown-body h1,
+.card.gemini .markdown-body h2,
+.card.gemini .markdown-body h3,
+.card.gemini .markdown-body h4 {
+    color: #2C3E50;
+}
+
+/* Gemini 引用块文字使用蓝色斜体 */
+.card.gemini .markdown-body blockquote {
+    color: var(--gemini-primary);
+    border-left-color: var(--gemini-primary);
+    background: rgba(74, 109, 140, 0.05);
+}
+
+/* Gemini 列表标记使用蓝色 */
+.card.gemini .markdown-body li::marker {
+    color: var(--gemini-primary);
+}
+
+/* ========== User 卡片文字配色 ========== */
+
+/* User 标题使用鼠尾草绿 */
+.card.user .markdown-body h1,
+.card.user .markdown-body h2,
+.card.user .markdown-body h3,
+.card.user .markdown-body h4 {
+    color: var(--user-border);
+}
+
+/* User 引用块文字使用绿色 */
+.card.user .markdown-body blockquote {
+    color: var(--user-border);
+    border-left-color: var(--user-primary);
+    background: rgba(139, 159, 130, 0.05);
+}
+
+/* User 列表标记使用绿色 */
+.card.user .markdown-body li::marker {
+    color: var(--user-primary);
 }
 
 .markdown-body em {
@@ -938,12 +1028,12 @@ body {
     top: 0;
     visibility: hidden;
     /* 与卡片内容区域保持一致的宽度和样式 */
-    width: 888px;
-    /* 1080 - 60*2 (card padding) - 36*2 (content padding) */
+    /* 1080 - 60*2 (card-body padding) = 960px */
+    width: 960px;
     padding: 0;
     font-family: 'Noto Serif SC', 'Source Han Serif SC', serif;
-    font-size: 28px;
-    line-height: 1.7;
+    font-size: 32px;
+    line-height: 1.9;
     color: #2C3E50;
 }
 
@@ -952,45 +1042,37 @@ body {
 #measure-container h3,
 #measure-container h4 {
     font-weight: 600;
-    margin-top: 0.8em;
-    margin-bottom: 0.5em;
+    font-size: 42px;
+    margin-top: 1.4em;
+    margin-bottom: 0.6em;
     line-height: 1.4;
 }
 
-#measure-container h1 {
-    font-size: 36px;
-}
-
-#measure-container h2 {
-    font-size: 32px;
-}
-
-#measure-container h3 {
-    font-size: 30px;
-}
-
-#measure-container h4 {
-    font-size: 28px;
+#measure-container h1:first-child,
+#measure-container h2:first-child,
+#measure-container h3:first-child,
+#measure-container h4:first-child {
+    margin-top: 0;
 }
 
 #measure-container p {
-    margin-bottom: 0.8em;
+    margin-bottom: 1em;
 }
 
 #measure-container ul,
 #measure-container ol {
     padding-left: 1.5em;
-    margin-bottom: 0.8em;
+    margin-bottom: 1em;
 }
 
 #measure-container li {
-    margin-bottom: 0.4em;
+    margin-bottom: 0.5em;
 }
 
 #measure-container blockquote {
-    margin: 0.8em 0;
-    padding: 16px 24px;
-    border-left: 4px solid #4A6D8C;
+    margin: 1em 0;
+    padding: 20px 28px;
+    border-left: 5px solid #4A6D8C;
     background: rgba(74, 109, 140, 0.06);
     border-radius: 0 8px 8px 0;
 }
