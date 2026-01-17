@@ -841,6 +841,34 @@ body {
     line-height: 1.5;
 }
 
+/* 表格样式 */
+.markdown-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.9em;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+    border: 1px solid var(--border-light);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.markdown-body table th {
+    background-color: rgba(0, 0, 0, 0.03);
+    font-weight: 600;
+}
+
+.markdown-body table tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.015);
+}
+
+.markdown-body table tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
 /* 分隔线 */
 .markdown-body hr {
     border: none;
