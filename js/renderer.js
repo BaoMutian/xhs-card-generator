@@ -148,7 +148,7 @@ const AppRenderer = (function () {
      */
     function generateCardsWithCharEstimate(conversations) {
         // 每页最大字符数（降低以避免溢出）
-        const MAX_CHARS_PER_PAGE = 660;
+        const MAX_CHARS_PER_PAGE = 680;
 
         // 当前页面累积的消息
         let currentPageMessages = [];
@@ -505,18 +505,15 @@ const AppRenderer = (function () {
             return `%%MATH_INLINE_${mathIndex++}%%`;
         });
 
-        // 处理跨行的粗体和斜体：将内部换行替换为空格
-        // 粗体 **...**
-        processed = processed.replace(/\*\*([\s\S]*?)\*\*/g, (match, text) => {
-            // 将内部的换行符替换为空格
-            const fixed = text.replace(/\n/g, ' ');
-            return `**${fixed}**`;
-        });
-
-        // 斜体 *...* (但不匹配 **)
-        processed = processed.replace(/(?<!\*)\*(?!\*)([^*\n][^*]*?)\*(?!\*)/g, (match, text) => {
-            const fixed = text.replace(/\n/g, ' ');
-            return `*${fixed}*`;
+        // 处理跨行的粗体：将内部换行替换为空格
+        // 只匹配真正的粗体（开头 ** 后紧跟非空白，结尾 ** 前紧跟非空白）
+        processed = processed.replace(/\*\*(\S[\s\S]*?\S)\*\*/g, (match, text) => {
+            // 只有包含换行时才处理
+            if (text.includes('\n')) {
+                const fixed = text.replace(/\n/g, ' ');
+                return `**${fixed}**`;
+            }
+            return match;
         });
 
         // 渲染 Markdown
