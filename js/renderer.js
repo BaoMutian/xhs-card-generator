@@ -7,8 +7,14 @@ const AppRenderer = (function () {
     // 卡片尺寸常量
     const CARD_WIDTH = 1080;
     const CARD_HEIGHT = 1800;
-    // 内容区域最大高度 = 卡片高度 - 顶部padding(36) - 角色header区(约70) - 底部区域(约70) - 安全边距(24)
-    const CONTENT_MAX_HEIGHT = 1600;
+    // 内容区域最大高度计算：
+    // 卡片高度 1800
+    // - card-body padding: 36(top) + 24(bottom) = 60
+    // - role-header: icon(36) + margin-bottom(20) + padding-bottom(14) + border(2) = 72
+    // - card-bottom: font(26) + padding-top(20) = 46
+    // - 安全边距: 12 (防止字体渲染差异)
+    // = 1800 - 60 - 72 - 46 - 12 = 1610
+    const CONTENT_MAX_HEIGHT = 1610;
 
     // 存储对话数据
     let conversations = [];
@@ -163,9 +169,9 @@ const AppRenderer = (function () {
     }
 
     /**
-     * 测量 Markdown 内容渲染后的实际高度
+     * 测量 Markdown 内容渲染后的实际高度（纯内容，不含额外边距）
      */
-    function measureContentHeight(content, isDialogue = false) {
+    function measureContentHeight(content) {
         if (!measureContainer) {
             createMeasureContainer();
         }
@@ -176,10 +182,7 @@ const AppRenderer = (function () {
         // 渲染数学公式
         renderMath(measureContainer);
 
-        // 如果是对话流，需要额外计算角色头部的高度
-        const extraHeight = isDialogue ? 60 : 0; // 对话项的角色头部约 60px
-
-        return measureContainer.scrollHeight + extraHeight;
+        return measureContainer.scrollHeight;
     }
 
     /**
@@ -204,21 +207,33 @@ const AppRenderer = (function () {
      * 基于实际渲染高度生成分页卡片 - 智能合并短消息
      */
     function generateCardsWithHeightMeasurement(conversations) {
-        // 对话流卡片的最大高度（需要减去底部区域）
-        const DIALOGUE_MAX_HEIGHT = CONTENT_MAX_HEIGHT - 60;
+        // 对话流卡片的最大高度
+        // 对话流 card-body padding: 40(top) + 24(bottom) = 64
+        // card-bottom: font(26) + padding-top(20) = 46
+        // 安全边距: 12
+        // 可用高度 = CARD_HEIGHT - 64 - 46 - 12 = 1678
+        const DIALOGUE_MAX_HEIGHT = CARD_HEIGHT - 64 - 46 - 12; // = 1678
 
         // 当前页面累积的消息
         let currentPageMessages = [];
         let currentPageHeight = 0;
 
+        // 对话项的布局常量（与 CSS 保持一致）
+        const DIALOGUE_GAP = 24;        // dialogue-flow 的 gap
+        const DIALOGUE_PADDING = 56;    // dialogue-item 的 padding (28*2)
+        const DIALOGUE_ROLE = 53;       // dialogue-role 高度 (icon 28 + margin 14 + padding 10 + border 1)
+
         conversations.forEach((conv, convIndex) => {
             const content = conv.content;
-            const contentHeight = measureContentHeight(content, currentPageMessages.length > 0);
+            const contentHeight = measureContentHeight(content);
+
+            // 计算作为对话项的完整高度
+            const dialogueItemHeight = contentHeight + DIALOGUE_PADDING + DIALOGUE_ROLE;
 
             // 计算如果添加这条消息后的总高度
             const additionalHeight = currentPageMessages.length > 0
-                ? contentHeight + 24 + 56 + 52  // 间距 + padding + 角色头
-                : contentHeight + 56 + 52;
+                ? dialogueItemHeight + DIALOGUE_GAP  // 后续项需要加间距
+                : dialogueItemHeight;
 
             // 检查能否添加到当前页（作为对话流）
             if (currentPageHeight + additionalHeight <= DIALOGUE_MAX_HEIGHT) {
@@ -237,17 +252,17 @@ const AppRenderer = (function () {
                 }
 
                 // 处理当前消息
-                // 检查单条消息能否放入一页
-                const singleMsgHeight = measureContentHeight(content) + 56 + 52;
+                // 检查单条消息能否放入一页（作为对话项）
+                const newItemHeight = contentHeight + DIALOGUE_PADDING + DIALOGUE_ROLE;
 
-                if (singleMsgHeight <= CONTENT_MAX_HEIGHT) {
+                if (newItemHeight <= DIALOGUE_MAX_HEIGHT) {
                     // 可以放入一页，开始新的累积
                     currentPageMessages.push({
                         role: conv.role,
                         content: content,
                         convIndex: convIndex
                     });
-                    currentPageHeight = singleMsgHeight;
+                    currentPageHeight = newItemHeight;
                 } else {
                     // 单条消息超长，需要分页
                     const pages = splitContentByHeight(content, CONTENT_MAX_HEIGHT);
@@ -281,7 +296,7 @@ const AppRenderer = (function () {
                 const content = messages[0].content;
                 const height = measureContentHeight(content);
 
-                if (height <= CONTENT_MAX_HEIGHT - 100) {
+                if (height <= CONTENT_MAX_HEIGHT) {
                     // 不需要分页
                     allCards.push({
                         type: 'content',
@@ -293,7 +308,7 @@ const AppRenderer = (function () {
                     });
                 } else {
                     // 需要分页
-                    const pages = splitContentByHeight(content, CONTENT_MAX_HEIGHT - 100);
+                    const pages = splitContentByHeight(content, CONTENT_MAX_HEIGHT);
                     pages.forEach((pageContent, pageIndex) => {
                         allCards.push({
                             type: 'content',
