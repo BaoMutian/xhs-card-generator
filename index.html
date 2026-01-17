@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书卡片生成器 - 与AI对话</title>
+    
+    <!-- Google Fonts: 思源宋体 + JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- KaTeX for Math -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    
+    <!-- Highlight.js for Code -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    
+    <!-- html2canvas for Export -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧控制面板 -->
+        <aside class="control-panel">
+            <h1 class="app-title">与AI对话<br><span>卡片生成器</span></h1>
+            
+            <!-- 文件选择 -->
+            <section class="control-section">
+                <h2>选择对话文件</h2>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file-input" accept=".md,.markdown" />
+                    <label for="file-input" class="file-label">
+                        <span class="file-icon">📄</span>
+                        <span class="file-text">点击选择 Markdown 文件</span>
+                    </label>
+                    <p class="file-name" id="selected-file-name"></p>
+                </div>
+                <button id="load-demo-btn" class="btn btn-secondary" style="margin-top: 10px; font-size: 0.8rem;">
+                    加载演示数据
+                </button>
+            </section>
+            
+            <!-- 元信息设置 -->
+            <section class="control-section">
+                <h2>卡片设置</h2>
+                <div class="form-group">
+                    <label for="vol-number">Vol 编号</label>
+                    <input type="number" id="vol-number" value="1" min="1" />
+                </div>
+                <div class="form-group">
+                    <label for="topic-tag">话题标签</label>
+                    <input type="text" id="topic-tag" placeholder="如：哲学思辨" />
+                </div>
+            </section>
+            
+            <!-- 封面设置 -->
+            <section class="control-section">
+                <h2>封面图设置</h2>
+                <div class="form-group">
+                    <label for="cover-title">主题金句</label>
+                    <textarea id="cover-title" rows="3" placeholder="从对话中提取的精华句子..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="cover-subtitle">副标题</label>
+                    <input type="text" id="cover-subtitle" placeholder="可选的副标题" />
+                </div>
+            </section>
+            
+            <!-- 对话选择 -->
+            <section class="control-section">
+                <h2>选择导出内容</h2>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="export-cover" checked />
+                        <span>封面图</span>
+                    </label>
+                </div>
+                <div id="conversation-list" class="conversation-list">
+                    <!-- 动态生成对话选择项 -->
+                    <p class="placeholder-text">请先选择 Markdown 文件</p>
+                </div>
+            </section>
+            
+            <!-- 导出按钮 -->
+            <section class="control-section export-section">
+                <button id="preview-btn" class="btn btn-secondary" disabled>
+                    预览卡片
+                </button>
+                <button id="export-btn" class="btn btn-primary" disabled>
+                    导出全部 PNG
+                </button>
+            </section>
+        </aside>
+        
+        <!-- 右侧预览区域 -->
+        <main class="preview-area">
+            <div class="preview-header">
+                <h2>卡片预览</h2>
+                <div class="preview-controls">
+                    <button id="prev-card" class="nav-btn" disabled>◀ 上一张</button>
+                    <span id="card-indicator">0 / 0</span>
+                    <button id="next-card" class="nav-btn" disabled>下一张 ▶</button>
+                </div>
+            </div>
+            
+            <div class="preview-container">
+                <div id="card-preview" class="card-wrapper">
+                    <!-- 卡片预览区域 -->
+                    <div class="empty-state">
+                        <p>选择 Markdown 文件后</p>
+                        <p>卡片预览将显示在这里</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 隐藏的导出容器 -->
+    <div id="export-container" class="export-container"></div>
+    
+    <!-- 加载自定义脚本 -->
+    <script src="js/parser.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/exporter.js"></script>
+    <script>
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            // KaTeX 自动渲染配置
+            if (typeof renderMathInElement !== 'undefined') {
+                window.katexOptions = {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                        {left: '\\(', right: '\\)', display: false}
+                    ],
+                    throwOnError: false
+                };
+            }
+            
+            // 初始化应用模块
+            if (typeof AppParser !== 'undefined') {
+                AppParser.init();
+            }
+            if (typeof AppRenderer !== 'undefined') {
+                AppRenderer.init();
+            }
+            if (typeof AppExporter !== 'undefined') {
+                AppExporter.init();
+            }
+        });
+    </script>
+</body>
+</html>
