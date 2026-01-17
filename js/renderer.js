@@ -7,7 +7,7 @@ const AppRenderer = (function() {
     // 卡片尺寸常量
     const CARD_WIDTH = 1080;
     const CARD_HEIGHT = 1800;
-    const CONTENT_MAX_HEIGHT = 1500; // 内容区域最大高度（留出头尾空间）
+    const CONTENT_MAX_HEIGHT = 1580; // 内容区域最大高度（卡片高度减去padding）
     
     // 存储对话数据
     let conversations = [];
@@ -107,7 +107,7 @@ const AppRenderer = (function() {
     }
     
     /**
-     * 生成所有卡片（包含封面和分页）
+     * 生成所有卡片（包含封面和分页）- 基于字符数估算分页
      */
     function generateAllCards() {
         allCards = [];
@@ -124,19 +124,131 @@ const AppRenderer = (function() {
         // 获取选中的对话
         const selectedConvs = getSelectedConversations();
         
-        // 为每个对话生成卡片（暂不分页，后续可扩展）
-        selectedConvs.forEach((conv, index) => {
-            allCards.push({
-                type: 'content',
-                role: conv.role,
-                content: conv.content,
-                index: index,
-                page: 1,
-                totalPages: 1
-            });
-        });
+        if (selectedConvs.length === 0) {
+            updateNavigationState();
+            return;
+        }
+        
+        // 使用字符数估算的简单分页
+        generateCardsWithCharEstimate(selectedConvs);
         
         updateNavigationState();
+    }
+    
+    /**
+     * 基于字符数估算生成分页卡片 - 简单可靠
+     */
+    function generateCardsWithCharEstimate(conversations) {
+        // 每页最大字符数（中文约 600-800 字符适合一页）
+        const MAX_CHARS_PER_PAGE = 700;
+        
+        conversations.forEach((conv, convIndex) => {
+            const content = conv.content;
+            
+            if (content.length <= MAX_CHARS_PER_PAGE) {
+                // 短消息，单页显示
+                allCards.push({
+                    type: 'content',
+                    role: conv.role,
+                    content: content,
+                    page: 1,
+                    totalPages: 1,
+                    isFirst: true
+                });
+            } else {
+                // 长消息，需要分页
+                const pages = splitContentByChars(content, MAX_CHARS_PER_PAGE);
+                pages.forEach((pageContent, pageIndex) => {
+                    allCards.push({
+                        type: 'content',
+                        role: conv.role,
+                        content: pageContent,
+                        page: pageIndex + 1,
+                        totalPages: pages.length,
+                        isFirst: pageIndex === 0
+                    });
+                });
+            }
+        });
+    }
+    
+    /**
+     * 按字符数分割内容，尽量在段落边界分割
+     */
+    function splitContentByChars(content, maxChars) {
+        const pages = [];
+        const paragraphs = content.split(/\n\n+/);
+        let currentPage = '';
+        
+        paragraphs.forEach(para => {
+            para = para.trim();
+            if (!para) return;
+            
+            const addition = currentPage ? '\n\n' + para : para;
+            
+            if (currentPage.length + addition.length <= maxChars) {
+                currentPage += addition;
+            } else {
+                // 当前段落放不下
+                if (currentPage) {
+                    pages.push(currentPage);
+                }
+                
+                // 如果单个段落超长，按句子拆分
+                if (para.length > maxChars) {
+                    const subPages = splitLongParagraph(para, maxChars);
+                    subPages.forEach((subPage, idx) => {
+                        if (idx === subPages.length - 1) {
+                            currentPage = subPage;
+                        } else {
+                            pages.push(subPage);
+                        }
+                    });
+                } else {
+                    currentPage = para;
+                }
+            }
+        });
+        
+        if (currentPage) {
+            pages.push(currentPage);
+        }
+        
+        return pages.length > 0 ? pages : [content];
+    }
+    
+    /**
+     * 拆分超长段落
+     */
+    function splitLongParagraph(para, maxChars) {
+        const pages = [];
+        const sentences = para.split(/(?<=[。！？.!?\n])/);
+        let current = '';
+        
+        sentences.forEach(sentence => {
+            if (current.length + sentence.length <= maxChars) {
+                current += sentence;
+            } else {
+                if (current) pages.push(current);
+                
+                // 如果单句超长，强制按字符拆分
+                if (sentence.length > maxChars) {
+                    for (let i = 0; i < sentence.length; i += maxChars) {
+                        const chunk = sentence.slice(i, Math.min(i + maxChars, sentence.length));
+                        if (i + maxChars >= sentence.length) {
+                            current = chunk;
+                        } else {
+                            pages.push(chunk);
+                        }
+                    }
+                } else {
+                    current = sentence;
+                }
+            }
+        });
+        
+        if (current) pages.push(current);
+        return pages;
     }
     
     /**
@@ -168,6 +280,8 @@ const AppRenderer = (function() {
         
         if (card.type === 'cover') {
             cardHtml = renderCoverCard();
+        } else if (card.type === 'dialogue') {
+            cardHtml = renderDialogueCard(card);
         } else {
             cardHtml = renderContentCard(card);
         }
@@ -221,7 +335,9 @@ const AppRenderer = (function() {
             ? 'assets/icons/user.png' 
             : 'assets/icons/gemini.svg';
         const pageIndicator = card.totalPages > 1 ? `${card.page}/${card.totalPages}` : '';
-        const continuationHint = card.page > 1 ? '<div class="continuation-hint">（接上页）</div>' : '';
+        // 使用 isFirst 字段判断是否是续页
+        const showContinuation = card.isFirst === false || (card.page && card.page > 1);
+        const continuationHint = showContinuation ? '<div class="continuation-hint">（接上页）</div>' : '';
         
         // 渲染 Markdown 内容
         const renderedContent = renderMarkdown(card.content);
@@ -239,6 +355,50 @@ const AppRenderer = (function() {
                         <div class="markdown-body">
                             ${renderedContent}
                         </div>
+                    </div>
+                    <div class="card-bottom">
+                        <span class="series-tag">#与AI对话 Vol.${volNumber}</span>
+                        <span class="inline-signature">@Vanilla</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * 渲染对话流卡片（多条消息合并）
+     */
+    function renderDialogueCard(card) {
+        const volNumber = document.getElementById('vol-number')?.value || '1';
+        
+        // 渲染所有消息
+        const messagesHtml = card.messages.map(msg => {
+            const roleName = msg.role === 'user' ? 'User' : 'Gemini';
+            const roleIcon = msg.role === 'user' 
+                ? 'assets/icons/user.png' 
+                : 'assets/icons/gemini.svg';
+            const renderedContent = renderMarkdown(msg.content);
+            
+            return `
+                <div class="dialogue-item ${msg.role}">
+                    <div class="dialogue-role">
+                        <img class="dialogue-icon" src="${roleIcon}" alt="${roleName}">
+                        <span class="dialogue-name">${roleName}</span>
+                    </div>
+                    <div class="dialogue-content">
+                        <div class="markdown-body">
+                            ${renderedContent}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        return `
+            <div class="card dialogue" style="width: ${CARD_WIDTH}px; height: ${CARD_HEIGHT}px;">
+                <div class="card-body">
+                    <div class="dialogue-flow">
+                        ${messagesHtml}
                     </div>
                     <div class="card-bottom">
                         <span class="series-tag">#与AI对话 Vol.${volNumber}</span>

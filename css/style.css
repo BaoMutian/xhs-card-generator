@@ -531,6 +531,90 @@ body {
     box-shadow: 0 4px 20px rgba(74, 109, 140, 0.15);
 }
 
+/* ========== 对话流卡片样式 ========== */
+.card.dialogue .card-body {
+    padding-top: 40px;
+}
+
+.dialogue-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.dialogue-item {
+    border-radius: 16px;
+    padding: 28px 32px;
+    position: relative;
+}
+
+.dialogue-item.user {
+    background: linear-gradient(135deg, var(--user-bg) 0%, #EDF1EA 100%);
+    border-left: 5px solid var(--user-primary);
+}
+
+.dialogue-item.gemini {
+    background: linear-gradient(135deg, var(--gemini-bg) 0%, #E8EEF3 100%);
+    border-left: 5px solid var(--gemini-primary);
+}
+
+.dialogue-role {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dialogue-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.dialogue-name {
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 600;
+}
+
+.dialogue-item.user .dialogue-name {
+    color: var(--user-border);
+}
+
+.dialogue-item.gemini .dialogue-name {
+    color: var(--gemini-border);
+}
+
+.dialogue-content {
+    font-size: 26px;
+    line-height: 1.7;
+}
+
+.dialogue-content .markdown-body {
+    font-size: 26px;
+}
+
+.dialogue-content .markdown-body p {
+    margin-bottom: 0.6em;
+}
+
+.dialogue-content .markdown-body p:last-child {
+    margin-bottom: 0;
+}
+
+/* 对话流中的荧光笔效果 */
+.dialogue-item.user .markdown-body strong {
+    background: linear-gradient(to top, rgba(139, 169, 130, 0.35) 0%, rgba(139, 169, 130, 0.35) 35%, transparent 35%);
+}
+
+.dialogue-item.gemini .markdown-body strong {
+    background: linear-gradient(to top, #D7E3FA 0%, #D7E3FA 35%, transparent 35%);
+}
+
 /* 内容容器 */
 .card-content {
     padding: 36px;
