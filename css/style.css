@@ -929,6 +929,92 @@ body {
 }
 
 /* ========================================
+   测量容器 (隐藏，用于计算渲染高度)
+   ======================================== */
+
+#measure-container {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    visibility: hidden;
+    /* 与卡片内容区域保持一致的宽度和样式 */
+    width: 888px;
+    /* 1080 - 60*2 (card padding) - 36*2 (content padding) */
+    padding: 0;
+    font-family: 'Noto Serif SC', 'Source Han Serif SC', serif;
+    font-size: 28px;
+    line-height: 1.7;
+    color: #2C3E50;
+}
+
+#measure-container h1,
+#measure-container h2,
+#measure-container h3,
+#measure-container h4 {
+    font-weight: 600;
+    margin-top: 0.8em;
+    margin-bottom: 0.5em;
+    line-height: 1.4;
+}
+
+#measure-container h1 {
+    font-size: 36px;
+}
+
+#measure-container h2 {
+    font-size: 32px;
+}
+
+#measure-container h3 {
+    font-size: 30px;
+}
+
+#measure-container h4 {
+    font-size: 28px;
+}
+
+#measure-container p {
+    margin-bottom: 0.8em;
+}
+
+#measure-container ul,
+#measure-container ol {
+    padding-left: 1.5em;
+    margin-bottom: 0.8em;
+}
+
+#measure-container li {
+    margin-bottom: 0.4em;
+}
+
+#measure-container blockquote {
+    margin: 0.8em 0;
+    padding: 16px 24px;
+    border-left: 4px solid #4A6D8C;
+    background: rgba(74, 109, 140, 0.06);
+    border-radius: 0 8px 8px 0;
+}
+
+#measure-container pre {
+    margin: 0.8em 0;
+    padding: 20px 24px;
+    background: #1E1E1E;
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+#measure-container pre code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    line-height: 1.5;
+}
+
+#measure-container code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+}
+
+/* ========================================
    响应式调整
    ======================================== */
 

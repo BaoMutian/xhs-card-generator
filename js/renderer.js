@@ -7,12 +7,16 @@ const AppRenderer = (function () {
     // 卡片尺寸常量
     const CARD_WIDTH = 1080;
     const CARD_HEIGHT = 1800;
-    const CONTENT_MAX_HEIGHT = 1580; // 内容区域最大高度（卡片高度减去padding）
+    // 内容区域最大高度 = 卡片高度 - 顶部padding(36) - 角色header区(约70) - 底部区域(约80) - 内容padding(72) - 安全边距
+    const CONTENT_MAX_HEIGHT = 1500;
 
     // 存储对话数据
     let conversations = [];
     let allCards = []; // 包含封面和所有内容卡片
     let currentCardIndex = 0;
+
+    // 测量容器（用于计算实际渲染高度）
+    let measureContainer = null;
 
     /**
      * 初始化渲染器
@@ -21,6 +25,21 @@ const AppRenderer = (function () {
         configureMarked();
         bindNavigationButtons();
         bindPreviewButton();
+        createMeasureContainer();
+    }
+
+    /**
+     * 创建隐藏的测量容器
+     */
+    function createMeasureContainer() {
+        // 检查是否已存在
+        measureContainer = document.getElementById('measure-container');
+        if (measureContainer) return;
+
+        measureContainer = document.createElement('div');
+        measureContainer.id = 'measure-container';
+        measureContainer.className = 'markdown-body';
+        document.body.appendChild(measureContainer);
     }
 
     /**
@@ -107,7 +126,7 @@ const AppRenderer = (function () {
     }
 
     /**
-     * 生成所有卡片（包含封面和分页）- 基于字符数估算分页
+     * 生成所有卡片（包含封面和分页）- 基于实际渲染高度分页
      */
     function generateAllCards() {
         allCards = [];
@@ -129,8 +148,8 @@ const AppRenderer = (function () {
             return;
         }
 
-        // 使用字符数估算的简单分页
-        generateCardsWithCharEstimate(selectedConvs);
+        // 使用基于实际渲染高度的智能分页
+        generateCardsWithHeightMeasurement(selectedConvs);
 
         // 标记最后一张内容卡片
         for (let i = allCards.length - 1; i >= 0; i--) {
@@ -144,49 +163,94 @@ const AppRenderer = (function () {
     }
 
     /**
-     * 基于字符数估算生成分页卡片 - 智能合并短消息
+     * 测量 Markdown 内容渲染后的实际高度
      */
-    function generateCardsWithCharEstimate(conversations) {
-        // 每页最大字符数（降低以避免溢出）
-        const MAX_CHARS_PER_PAGE = 680;
+    function measureContentHeight(content, isDialogue = false) {
+        if (!measureContainer) {
+            createMeasureContainer();
+        }
+
+        const html = renderMarkdown(content);
+        measureContainer.innerHTML = html;
+
+        // 渲染数学公式
+        renderMath(measureContainer);
+
+        // 如果是对话流，需要额外计算角色头部的高度
+        const extraHeight = isDialogue ? 60 : 0; // 对话项的角色头部约 60px
+
+        return measureContainer.scrollHeight + extraHeight;
+    }
+
+    /**
+     * 测量对话流卡片的总高度
+     */
+    function measureDialogueHeight(messages) {
+        let totalHeight = 0;
+        const GAP = 24; // 对话项之间的间距
+        const ITEM_PADDING = 56; // 每个对话项的内边距 (28*2)
+        const ROLE_HEADER = 52; // 角色头部高度
+
+        messages.forEach((msg, idx) => {
+            const contentHeight = measureContentHeight(msg.content);
+            totalHeight += contentHeight + ITEM_PADDING + ROLE_HEADER;
+            if (idx > 0) totalHeight += GAP;
+        });
+
+        return totalHeight;
+    }
+
+    /**
+     * 基于实际渲染高度生成分页卡片 - 智能合并短消息
+     */
+    function generateCardsWithHeightMeasurement(conversations) {
+        // 对话流卡片的最大高度（需要减去底部区域）
+        const DIALOGUE_MAX_HEIGHT = CONTENT_MAX_HEIGHT - 60;
 
         // 当前页面累积的消息
         let currentPageMessages = [];
-        let currentPageChars = 0;
+        let currentPageHeight = 0;
 
         conversations.forEach((conv, convIndex) => {
             const content = conv.content;
-            const contentLen = content.length;
+            const contentHeight = measureContentHeight(content, currentPageMessages.length > 0);
 
-            // 检查能否添加到当前页
-            if (currentPageChars + contentLen <= MAX_CHARS_PER_PAGE) {
-                // 可以合并到当前页
+            // 计算如果添加这条消息后的总高度
+            const additionalHeight = currentPageMessages.length > 0
+                ? contentHeight + 24 + 56 + 52  // 间距 + padding + 角色头
+                : contentHeight + 56 + 52;
+
+            // 检查能否添加到当前页（作为对话流）
+            if (currentPageHeight + additionalHeight <= DIALOGUE_MAX_HEIGHT) {
                 currentPageMessages.push({
                     role: conv.role,
                     content: content,
                     convIndex: convIndex
                 });
-                currentPageChars += contentLen;
+                currentPageHeight += additionalHeight;
             } else {
                 // 放不下，先输出当前页
                 if (currentPageMessages.length > 0) {
                     flushCurrentPage(currentPageMessages);
                     currentPageMessages = [];
-                    currentPageChars = 0;
+                    currentPageHeight = 0;
                 }
 
                 // 处理当前消息
-                if (contentLen <= MAX_CHARS_PER_PAGE) {
-                    // 短消息，开始新页
+                // 检查单条消息能否放入一页
+                const singleMsgHeight = measureContentHeight(content) + 56 + 52;
+
+                if (singleMsgHeight <= CONTENT_MAX_HEIGHT) {
+                    // 可以放入一页，开始新的累积
                     currentPageMessages.push({
                         role: conv.role,
                         content: content,
                         convIndex: convIndex
                     });
-                    currentPageChars = contentLen;
+                    currentPageHeight = singleMsgHeight;
                 } else {
-                    // 长消息，需要分页
-                    const pages = splitContentByChars(content, MAX_CHARS_PER_PAGE);
+                    // 单条消息超长，需要分页
+                    const pages = splitContentByHeight(content, CONTENT_MAX_HEIGHT);
                     pages.forEach((pageContent, pageIndex) => {
                         allCards.push({
                             type: 'content',
@@ -213,15 +277,34 @@ const AppRenderer = (function () {
             if (messages.length === 0) return;
 
             if (messages.length === 1) {
-                // 单条消息
-                allCards.push({
-                    type: 'content',
-                    role: messages[0].role,
-                    content: messages[0].content,
-                    page: 1,
-                    totalPages: 1,
-                    isFirst: true
-                });
+                // 单条消息，检查是否需要分页
+                const content = messages[0].content;
+                const height = measureContentHeight(content);
+
+                if (height <= CONTENT_MAX_HEIGHT - 100) {
+                    // 不需要分页
+                    allCards.push({
+                        type: 'content',
+                        role: messages[0].role,
+                        content: content,
+                        page: 1,
+                        totalPages: 1,
+                        isFirst: true
+                    });
+                } else {
+                    // 需要分页
+                    const pages = splitContentByHeight(content, CONTENT_MAX_HEIGHT - 100);
+                    pages.forEach((pageContent, pageIndex) => {
+                        allCards.push({
+                            type: 'content',
+                            role: messages[0].role,
+                            content: pageContent,
+                            page: pageIndex + 1,
+                            totalPages: pages.length,
+                            isFirst: pageIndex === 0
+                        });
+                    });
+                }
             } else {
                 // 多条消息合并为对话流卡片
                 allCards.push({
@@ -236,39 +319,47 @@ const AppRenderer = (function () {
     }
 
     /**
-     * 按字符数分割内容，尽量在段落边界分割
+     * 基于渲染高度分割内容，在段落边界分割
      */
-    function splitContentByChars(content, maxChars) {
+    function splitContentByHeight(content, maxHeight) {
         const pages = [];
-        const paragraphs = content.split(/\n\n+/);
+
+        // 将内容按块级元素分割（段落、标题、代码块、列表等）
+        const blocks = splitIntoBlocks(content);
+
         let currentPage = '';
+        let currentHeight = 0;
 
-        paragraphs.forEach(para => {
-            para = para.trim();
-            if (!para) return;
+        blocks.forEach(block => {
+            const blockWithSeparator = currentPage ? '\n\n' + block : block;
+            const testContent = currentPage + blockWithSeparator;
+            const testHeight = measureContentHeight(testContent);
 
-            const addition = currentPage ? '\n\n' + para : para;
-
-            if (currentPage.length + addition.length <= maxChars) {
-                currentPage += addition;
+            if (testHeight <= maxHeight) {
+                currentPage = testContent;
+                currentHeight = testHeight;
             } else {
-                // 当前段落放不下
+                // 当前块放不下
                 if (currentPage) {
                     pages.push(currentPage);
                 }
 
-                // 如果单个段落超长，按句子拆分
-                if (para.length > maxChars) {
-                    const subPages = splitLongParagraph(para, maxChars);
+                // 检查单个块是否超高
+                const blockHeight = measureContentHeight(block);
+                if (blockHeight > maxHeight) {
+                    // 块太大，需要进一步拆分
+                    const subPages = splitLongBlock(block, maxHeight);
                     subPages.forEach((subPage, idx) => {
                         if (idx === subPages.length - 1) {
                             currentPage = subPage;
+                            currentHeight = measureContentHeight(subPage);
                         } else {
                             pages.push(subPage);
                         }
                     });
                 } else {
-                    currentPage = para;
+                    currentPage = block;
+                    currentHeight = blockHeight;
                 }
             }
         });
@@ -281,36 +372,169 @@ const AppRenderer = (function () {
     }
 
     /**
-     * 拆分超长段落
+     * 将 Markdown 内容分割成块级元素
      */
-    function splitLongParagraph(para, maxChars) {
+    function splitIntoBlocks(content) {
+        const blocks = [];
+        const lines = content.split('\n');
+        let currentBlock = [];
+        let inCodeBlock = false;
+        let inList = false;
+
+        lines.forEach((line, idx) => {
+            // 检测代码块
+            if (line.trim().startsWith('```')) {
+                if (inCodeBlock) {
+                    // 代码块结束
+                    currentBlock.push(line);
+                    blocks.push(currentBlock.join('\n'));
+                    currentBlock = [];
+                    inCodeBlock = false;
+                } else {
+                    // 代码块开始
+                    if (currentBlock.length > 0) {
+                        blocks.push(currentBlock.join('\n'));
+                        currentBlock = [];
+                    }
+                    currentBlock.push(line);
+                    inCodeBlock = true;
+                }
+                return;
+            }
+
+            if (inCodeBlock) {
+                currentBlock.push(line);
+                return;
+            }
+
+            // 检测列表项
+            const isListItem = /^[\s]*[-*+]|\d+\./.test(line);
+
+            // 检测标题
+            const isHeading = /^#{1,6}\s/.test(line);
+
+            // 检测引用
+            const isBlockquote = /^>\s/.test(line);
+
+            // 检测空行（段落分隔）
+            const isEmpty = line.trim() === '';
+
+            if (isEmpty) {
+                if (currentBlock.length > 0) {
+                    blocks.push(currentBlock.join('\n'));
+                    currentBlock = [];
+                }
+                inList = false;
+            } else if (isHeading) {
+                // 标题作为新块的开始
+                if (currentBlock.length > 0) {
+                    blocks.push(currentBlock.join('\n'));
+                    currentBlock = [];
+                }
+                currentBlock.push(line);
+                inList = false;
+            } else if (isListItem) {
+                if (!inList && currentBlock.length > 0) {
+                    blocks.push(currentBlock.join('\n'));
+                    currentBlock = [];
+                }
+                currentBlock.push(line);
+                inList = true;
+            } else {
+                currentBlock.push(line);
+            }
+        });
+
+        if (currentBlock.length > 0) {
+            blocks.push(currentBlock.join('\n'));
+        }
+
+        return blocks.filter(b => b.trim());
+    }
+
+    /**
+     * 拆分超长的单个块（如超长段落）
+     */
+    function splitLongBlock(block, maxHeight) {
         const pages = [];
-        const sentences = para.split(/(?<=[。！？.!?\n])/);
+
+        // 先尝试按句子拆分
+        const sentences = block.split(/(?<=[。！？.!?\n])/);
         let current = '';
+        let currentHeight = 0;
 
         sentences.forEach(sentence => {
-            if (current.length + sentence.length <= maxChars) {
-                current += sentence;
-            } else {
-                if (current) pages.push(current);
+            const testContent = current + sentence;
+            const testHeight = measureContentHeight(testContent);
 
-                // 如果单句超长，强制按字符拆分
-                if (sentence.length > maxChars) {
-                    for (let i = 0; i < sentence.length; i += maxChars) {
-                        const chunk = sentence.slice(i, Math.min(i + maxChars, sentence.length));
-                        if (i + maxChars >= sentence.length) {
+            if (testHeight <= maxHeight) {
+                current = testContent;
+                currentHeight = testHeight;
+            } else {
+                if (current) {
+                    pages.push(current);
+                }
+
+                // 检查单句是否超长
+                const sentenceHeight = measureContentHeight(sentence);
+                if (sentenceHeight > maxHeight) {
+                    // 单句超长，按词/字符强制拆分
+                    const chunks = splitLongSentence(sentence, maxHeight);
+                    chunks.forEach((chunk, idx) => {
+                        if (idx === chunks.length - 1) {
                             current = chunk;
+                            currentHeight = measureContentHeight(chunk);
                         } else {
                             pages.push(chunk);
                         }
-                    }
+                    });
                 } else {
                     current = sentence;
+                    currentHeight = sentenceHeight;
                 }
             }
         });
 
-        if (current) pages.push(current);
+        if (current) {
+            pages.push(current);
+        }
+
+        return pages.length > 0 ? pages : [block];
+    }
+
+    /**
+     * 拆分超长句子（最后手段：按字符拆分）
+     */
+    function splitLongSentence(sentence, maxHeight) {
+        const pages = [];
+        let start = 0;
+        const step = 100; // 每次尝试增加的字符数
+
+        while (start < sentence.length) {
+            let end = start + step;
+
+            // 二分查找最佳分割点
+            let low = start + 1;
+            let high = sentence.length;
+            let bestEnd = start + 1;
+
+            while (low <= high) {
+                const mid = Math.floor((low + high) / 2);
+                const testChunk = sentence.slice(start, mid);
+                const testHeight = measureContentHeight(testChunk);
+
+                if (testHeight <= maxHeight) {
+                    bestEnd = mid;
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
+                }
+            }
+
+            pages.push(sentence.slice(start, bestEnd));
+            start = bestEnd;
+        }
+
         return pages;
     }
 
@@ -587,6 +811,8 @@ const AppRenderer = (function () {
 
         if (card.type === 'cover') {
             cardHtml = renderCoverCard();
+        } else if (card.type === 'dialogue') {
+            cardHtml = renderDialogueCard(card);
         } else {
             cardHtml = renderContentCard(card);
         }
