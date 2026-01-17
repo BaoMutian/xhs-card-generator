@@ -207,9 +207,7 @@ const AppRenderer = (function() {
                         <span> × </span>
                         <span class="user-mark">User</span>
                     </div>
-                </div>
-                <div class="card-footer">
-                    <span class="signature">@Vanilla</span>
+                    <div class="cover-signature">@Vanilla</div>
                 </div>
             </div>
         `;
@@ -245,10 +243,8 @@ const AppRenderer = (function() {
                         <div class="markdown-body">
                             ${renderedContent}
                         </div>
+                        <div class="inline-signature">@Vanilla</div>
                     </div>
-                </div>
-                <div class="card-footer">
-                    <span class="signature">@Vanilla</span>
                 </div>
             </div>
         `;

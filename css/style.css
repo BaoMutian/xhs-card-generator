@@ -516,9 +516,11 @@ body {
 /* 内容容器 */
 .card-content {
     flex: 1;
-    padding: 40px;
+    padding: 36px;
     border-radius: 16px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* 续页提示 */
@@ -530,17 +532,26 @@ body {
     opacity: 0.7;
 }
 
-/* 底部署名 */
+/* 底部署名 - 内嵌在内容区域 */
 .card-footer {
-    padding: 16px var(--card-padding) 24px;
-    text-align: right;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    display: none; /* 隐藏独立的底部栏 */
 }
 
 .card-footer .signature {
     font-family: var(--font-serif);
     font-size: 28px;
     color: var(--text-secondary);
+}
+
+/* 内容区域内的署名 */
+.card-content .inline-signature {
+    text-align: right;
+    font-family: var(--font-serif);
+    font-size: 26px;
+    color: var(--text-secondary);
+    margin-top: auto;
+    padding-top: 20px;
+    opacity: 0.7;
 }
 
 /* ========================================
@@ -620,6 +631,14 @@ body {
     font-weight: 600;
 }
 
+.card.cover .cover-signature {
+    margin-top: auto;
+    font-family: var(--font-serif);
+    font-size: 28px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
 /* ========================================
    Markdown 渲染样式 (卡片内)
    ======================================== */
@@ -629,6 +648,7 @@ body {
     font-size: 28px;
     line-height: 1.7;
     color: var(--text-primary);
+    flex: 1;
 }
 
 .markdown-body h1,
@@ -717,16 +737,21 @@ body {
 .markdown-body strong {
     font-weight: 700;
     color: var(--text-primary);
-    background: linear-gradient(to top, rgba(130, 200, 180, 0.55) 0%, rgba(130, 200, 180, 0.55) 40%, transparent 40%);
+    background: linear-gradient(to top, rgba(139, 159, 130, 0.5) 0%, rgba(139, 159, 130, 0.5) 35%, transparent 35%);
     padding: 0 2px;
     border-radius: 2px;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
 }
 
-/* Gemini 卡片中的荧光笔使用浅蓝绿色调 */
+/* User 卡片使用鼠尾草绿荧光笔 */
+.card.user .markdown-body strong {
+    background: linear-gradient(to top, rgba(139, 159, 130, 0.5) 0%, rgba(139, 159, 130, 0.5) 35%, transparent 35%);
+}
+
+/* Gemini 卡片使用浅蓝荧光笔 #D7E3FA */
 .card.gemini .markdown-body strong {
-    background: linear-gradient(to top, rgba(100, 180, 190, 0.55) 0%, rgba(100, 180, 190, 0.55) 40%, transparent 40%);
+    background: linear-gradient(to top, #D7E3FA 0%, #D7E3FA 35%, transparent 35%);
 }
 
 .markdown-body em {
